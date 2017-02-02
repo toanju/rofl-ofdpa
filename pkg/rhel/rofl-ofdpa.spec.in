@@ -1,16 +1,31 @@
-%global snapshotrel @SPEC_SNAPSHOTREL@%{nil}
-%global snapshot @SPEC_SNAPSHOT@%{nil}
+%global gitreflong @GIT_REF_LONG@%{nil}
+%global gitrel @GIT_RELEASE@%{nil}
+
+%if "%{gitref}" == ""
+%undefine gitreflong
+%undefine gitrel
+%else
+%global gitref %(r=%{gitreflong}; echo ${r:0:7})
+%endif
+
+%global _release 1
 
 Name:           rofl-ofdpa
-Version:        @SPEC_VERSION@
-Release:        1%{?snapshotrel}%{?dist}
+Version:        @PKG_VERSION@
+Release:        %{!?gitref:%{_release}}%{?gitref:0%{?gitrel:.%{gitrel}}.git.%{gitref}}%{?dist}
 Summary:        TODO
 
 License:        BISDN
 URL:            http://www.bisdn.de/
-Source0:        rofl-ofdpa-%{version}%{?snapshot}.tar.gz
+#Source0:        https://api.github.com/repos/bisdn/rofl-ofdpa/tarball/%{!?gitref:%{version}}%{?gitref}#/%{name}-%{version}%{?gitref:-%{gitref}}.tar.gz
 
-BuildRequires:  autoconf, automake, libtool, rofl-common-devel
+%if %{defined gitref}
+Source0:        https://github.com/bisdn/rofl-ofdpa/archive/%{gitreflong}.tar.gz#/%{name}-%{version}%{?gitref:-%{gitref}}.tar.gz
+%else
+Source0:        https://github.com/bisdn/rofl-ofdpa/archive/%{version}.tar.gz#/%{name}-%{version}%{?gitref:-%{gitref}}.tar.gz
+%endif
+
+BuildRequires:  autoconf, automake, libtool, rofl-common-devel, sed
 Requires:       rofl-common
 
 %description
@@ -26,10 +41,14 @@ Requires:       rofl-common-devel
 TODO
 
 %prep
-%setup -q -n %{name}-%{version}%{?snapshot}
+%setup -q %{?gitreflong:-n %{name}-%{?gitreflong}}
 
 
 %build
+%if %{defined gitref}
+echo %{version}%{?gitrel:-%{gitrel}}-git%{gitref} > VERSION
+%endif
+./autogen.sh
 %configure
 make %{?_smp_mflags}
 
